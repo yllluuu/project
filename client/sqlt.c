@@ -15,8 +15,10 @@
 #include<string.h>
 #include<errno.h>
 #include<stdlib.h>
-#define db_name			dtbase
-#define table_name		table
+#include<unistd.h>
+
+//#define db_name			dtbase
+//#define table_name		table
 //创建打开表
 sqlite3* sqlite3_open_database(char * db_name)
 {
@@ -51,7 +53,7 @@ void sqlite3_close_database(sqlite3 *db)
 	}
 }
 //判断表是否存在
-int sqlite3_exist_table(sqlite3 *db,char * table_name)
+/*int sqlite3_exist_table(sqlite3 *db,char * table_name)
 {
 	int 		rc=0;
 	int			ret=-1;
@@ -71,6 +73,7 @@ int sqlite3_exist_table(sqlite3 *db,char * table_name)
 	}
 	return ret;
 }
+*/
 //创建表
 int sqlite3_create_table(sqlite3* db,char * table_name)
 {
@@ -79,7 +82,7 @@ int sqlite3_create_table(sqlite3* db,char * table_name)
 	char	sql[128]={0};
 	char	*err_msg=NULL;
 
-	sprintf(sql,"CREATE TABLE IF NOT EXISTS %S ("" ID INTEGER PRIMAY KEY AUTOINCREMENT,""Data TEXT,""RealDate DATETIME)",table_name);
+	sprintf(sql,"CREATE TABLE IF NOT EXISTS %s(ID TEXT,Temperature REAL,time1 TEXT)",table_name);
 	rc=sqlite3_exec(db,sql,0,0,&err_msg);
 	if(rc!=SQLITE_OK)
 	{
@@ -116,15 +119,15 @@ int sqlite3_delete_table(sqlite3*db,char * table_name)
 	return ret;
 }
 //插入数据
-int sqlite3_insert(sqlite3* db,char* table_name,char *data_buf)
+int sqlite3_insert(sqlite3* db,char* table_name,char *ID,float  *temp,char * localtime)
 {
 	int		rc=0;
 	int		ret=-1;
-	char	sql[128]={0};
+	char	sql[128];
 	char	*err_msg=NULL;
 
-	sprintf(sql,"INSERT INTO %s (ID,Data,RealDate) values(NULL,'%s',DATETIME('now','localtime'))",table_name,data_buf);
-	sqlite3_busy_timeout(db,30*1000);
+	sprintf(sql,"INSERT INTO %s(ID,Temperature,time1) VALUES ('%s',%f,'%s')",table_name,ID,*temp,localtime);
+	
 	rc=sqlite3_exec(db,sql,0,0,&err_msg);
 	if(rc!=SQLITE_OK)
 	{
@@ -139,7 +142,7 @@ int sqlite3_insert(sqlite3* db,char* table_name,char *data_buf)
 	return ret;
 }
 //更新数据
-int sqlite3_update(sqlite3* db,char* table_name,char* data_buf)
+/*  int sqlite3_update(sqlite3* db,char* table_name,char* data_buf)
 {
 	int		rc=0;
 	int		ret=-1;
@@ -160,7 +163,7 @@ int sqlite3_update(sqlite3* db,char* table_name,char* data_buf)
 		ret=0;
 	}
 	return ret;
-}
+}*/
 //删除数据
 int	sqlite3_delete(sqlite3* db,char* table_name)
 {
@@ -168,7 +171,7 @@ int	sqlite3_delete(sqlite3* db,char* table_name)
 	int		ret=-1;
 	char	sql[128]={0};
 	char	*err_msg=NULL;
-	sprintf(sql,"DELETE FROM %s",table_name);
+	sprintf(sql,"DELETE FROM %s WHERE ROWID = (SELECT MIN(rowid) FROM %s);",table_name,table_name);
 	rc=sqlite3_exec(db,sql,0,0,&err_msg);
 	if(rc!=SQLITE_OK)
 	{
@@ -181,15 +184,16 @@ int	sqlite3_delete(sqlite3* db,char* table_name)
 	}
 	return ret;
 }
-//查询数据
-int sqlite3_select(sqlite3* db,char* table_name)
+//查询发送数据
+int sqlite3_select(sqlite3* db,char* table_name,char *data_buf)
 {
-	int		i,j;
+	int		i;
 	char	*err_msg=NULL;
 	char	sql[128]={0};
 	int		rc=0;
 	int		rows,columns;
 	char	**results;
+
 	sprintf(sql,"SELECT * FROM %s",table_name);
 	rc=sqlite3_get_table(db,sql,&results,&rows,&columns,&err_msg);
 	if(rc!=SQLITE_OK)
@@ -197,15 +201,15 @@ int sqlite3_select(sqlite3* db,char* table_name)
 		printf("Select error:%s\n",err_msg);
 		sqlite3_free(err_msg);
 		return -1;
-	}
-	for(i=0;i<rows+1;i++)
+	}	
+	printf("rows:%d\n",rows);
+	for(i=(rows-1);i>=1;i--)
 	{
-		for(j=0;j<columns;j++)
-		{
-			printf("%s\\t",results[i*columns+j]);
-		}
-		printf("\\n");
-	}
+
+		snprintf(data_buf,128,"%s,%.2f,%s\n",results[3],atof(results[4]),results[5]);
+    	sqlite3_delete(db,table_name);		  
+    }  
+	
 	sqlite3_free_table(results);
 	return 0;
 }

@@ -24,7 +24,11 @@
 #include<fcntl.h>
 #include <time.h>
 #include<netinet/tcp.h>
+#include<sqlite3.h>
+#include"sqlt.h"
 
+#define DB_NAME 		"dtbase.db"
+#define TABLE_NAME    	"user"
 int get_temperature(float *temp);
 void print_usage(char *progname);
 int get_dev(char *ID,int len);
@@ -41,8 +45,10 @@ int main(int argc,char ** argv)
 	int							time;
 	char						buf[1024];
 	int							len=20;
-	char 						Id[20];
-	char						localt[64];
+	char 						Id[16];
+	char						data_buf[1024];
+	sqlite3						*db;
+	char						localt[128];
 	struct sockaddr_in			servadrr;
 	char						*servip;
 	int							port;
@@ -112,17 +118,35 @@ int main(int argc,char ** argv)
 		if(k<0)//服务端断开
 		{
 			close(connfd);
-			//写进数据库
-
+			//打开数据库
+			db=sqlite3_open_database(DB_NAME);
+			//创建表
+			if((sqlite3_create_table(db,TABLE_NAME))==0)
+			{
+				//写入表
+				if((sqlite3_insert(db,TABLE_NAME,Id,&temp,localt))==0)
+				{
+					printf("Insert data successfully\n");
+				}
+			}
+			sqlite3_close_database(db);
 			//重新连接
-			l=sock_reconnect(servip,port);
-			if(l<0)	
+			if(sock_reconnect(servip,port)<0)/* 未连上 */	
 	 			continue;
-			else
-			{   //检查数据库中是否有数据
-				//从数据库中取出数据
-				//写入服务端
-				//若数据库中数据与服务端接收到的数据相同，则删除数据库中数据
+			else//已连上
+			{
+				//打开数据库
+				db=sqlite3_open_database(DB_NAME);
+				//从数据库查询发送数据并删除
+				memset(data_buf,0,sizeof(data_buf));
+				sqlite3_select(db,TABLE_NAME,data_buf);
+				if((write(connfd,data_buf,strlen(data_buf)))<0)
+				{
+					printf("Write data to server failure:%s\n",strerror(errno));
+					goto CleanUp;
+				}
+				//关闭数据库
+				sqlite3_close_database(db);
 				continue;
 			}
 		}
@@ -149,7 +173,7 @@ int main(int argc,char ** argv)
 				goto CleanUp;
 			}
 
-			printf("%s\n",buf);
+		//	printf("%s\n",buf);
 			sleep(time);
 		}
 	}
@@ -307,4 +331,5 @@ int sock_reconnect(char *servip,int port)
 		}
 	
 }
+//字符分割
 
