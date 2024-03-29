@@ -22,8 +22,8 @@
 //创建打开表
 sqlite3* sqlite3_open_database(char * db_name)
 {
-	int rc=0;
-	sqlite3* db;
+	int			 	rc=0;
+	sqlite3* 		db;
 
 	if(db_name==NULL||strlen(db_name)==0)
 	{
@@ -184,7 +184,7 @@ int	sqlite3_delete(sqlite3* db,char* table_name)
 	}
 	return ret;
 }
-//查询发送数据
+//查询数据
 int sqlite3_select(sqlite3* db,char* table_name,char *data_buf)
 {
 	int		i;
@@ -202,14 +202,6 @@ int sqlite3_select(sqlite3* db,char* table_name,char *data_buf)
 		sqlite3_free(err_msg);
 		return -1;
 	}	
-	printf("rows:%d\n",rows);
-	for(i=(rows-1);i>=1;i--)
-	{
-
-		snprintf(data_buf,128,"%s,%.2f,%s\n",results[3],atof(results[4]),results[5]);
-    	sqlite3_delete(db,table_name);		  
-    }  
-	
-	sqlite3_free_table(results);
-	return 0;
+	snprintf(data_buf,128,"%s,%.2f,%s\n",results[3],atof(results[4]),results[5]);		    
+	return rows;
 }

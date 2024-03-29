@@ -53,6 +53,7 @@ int main(int argc,char ** argv)
 	char						*servip;
 	int							port;
 	int							ch;
+	int 						rows;
 
 	struct option				opts[]=
 	{
@@ -113,7 +114,7 @@ int main(int argc,char ** argv)
 		get_temperature(&temp);
 		get_dev(Id,len);
 		get_tm(localt);
-		snprintf(buf,sizeof(buf),"id:%s,temperature:%.2f,time:%s",Id,temp,localt);
+		snprintf(buf,sizeof(buf),"%s,%.2f,%s",Id,temp,localt);
 		k=socket_alive(connfd);
 		if(k<0)//服务端断开
 		{
@@ -132,151 +133,156 @@ int main(int argc,char ** argv)
 			sqlite3_close_database(db);
 			//重新连接
 			if(sock_reconnect(servip,port)<0)/* 未连上 */	
-	 			continue;
-			else//已连上
 			{
-				//打开数据库
-				db=sqlite3_open_database(DB_NAME);
-				//从数据库查询发送数据并删除
+				printf("Reconnect failure:%s\n",strerror(errno));
+			}
+	 			//continue;
+			else/* 已连上 */
+			{
+				db=sqlite3_open_database(DB_NAME);/* 打开数据库 */
 				memset(data_buf,0,sizeof(data_buf));
-				sqlite3_select(db,TABLE_NAME,data_buf);
-				if((write(connfd,data_buf,strlen(data_buf)))<0)
+			    do
+				{
+					rows=sqlite3_select(db,TABLE_NAME,data_buf);
+				    if((write(connfd,data_buf,strlen(data_buf)))<0)
+				   	{
+						printf("Write data to server failure:%s\n",strerror(errno));
+						goto CleanUp;
+					} 
+					sqlite3_delete(db,TABLE_NAME);
+				}while(rows>1);/* 查找数据发送数据并删除数据库中数据 */
+
+				sqlite3_close_database(db);/* 关闭数据库 */
+				//continue;
+			}
+		}
+			else//服务端未断开
+			{
+				if(write(connfd,buf,strlen(buf))<0)
 				{
 					printf("Write data to server failure:%s\n",strerror(errno));
 					goto CleanUp;
+				}	
+			
+
+				memset(buf,0,sizeof(buf));
+				rv=read(connfd,buf,sizeof(buf));
+				if(rv<0)
+				{
+					printf("Read data from server failure:%s\n",strerror(errno));
+					goto CleanUp;
+				}	
+
+				else if(rv==0)
+				{
+					printf("Client connect to server get disconnected\n");
+					goto CleanUp;
 				}
-				//关闭数据库
-				sqlite3_close_database(db);
-				continue;
+
+			//	printf("%s\n",buf);
 			}
-		}
-		else//服务端未断开
-		{
-			if(write(connfd,buf,strlen(buf))<0)
-			{
-				printf("Write data to server failure:%s\n",strerror(errno));
-				goto CleanUp;
-			}	
-		
-
- 			memset(buf,0,sizeof(buf));
-			rv=read(connfd,buf,sizeof(buf));
-			if(rv<0)
-			{
-				printf("Read data from server failure:%s\n",strerror(errno));
-				goto CleanUp;
-			}	
-
-			else if(rv==0)
-			{
-				printf("Client connect to server get disconnected\n");
-				goto CleanUp;
-			}
-
-		//	printf("%s\n",buf);
 			sleep(time);
 		}
-	}
 
-CleanUp:
-	close(connfd);
+	CleanUp:
+		close(connfd);
 
-return 0;
-}
-
-void print_usage(char *progname)
-{
-	printf("%s usage:\n",progname);
-	printf("-i(--ipaddr):specify server IP address.\n");
-	printf("-p(--port):specify server port.\n");
-	printf("-t(--time):Sampling interval.\n");
-	printf("-h(--help):print this help information.\n");
-	return;
-}
-
-int get_temperature(float *temp)
-{
-	int					fd=-1;
-	char				buf[128];
-	char				*ptr=NULL;
-	DIR					*dirp=NULL;
-	struct dirent		*direntp=NULL;
-	char				w1_path[64]="/sys/bus/w1/devices/";
-	char				chip_sn[32];
-	int					found=0;
-
-	dirp=opendir(w1_path);
-	if(!dirp)
-	{
-		printf("Open folder %s failure:%s\n",w1_path,strerror(errno));
-		return -1;
-	}
-
-	while(NULL!=(direntp=readdir(dirp)))
-	{
-		if(strstr(direntp->d_name,"28-"))
-		{
-			strncpy(chip_sn,direntp->d_name,sizeof(chip_sn));
-			found=1;
-		}
-	}
-
-	closedir(dirp);
-
-	if(!found)
-	{
-		printf("Cannot find ds18b20 chipset\n");
-		return -2;
-	}
-
-	strncat(w1_path,chip_sn,sizeof(w1_path)-strlen(w1_path));
-	strncat(w1_path,"/w1_slave",sizeof(w1_path)-strlen(w1_path));
-
-	if((fd=open(w1_path,O_RDONLY))<0)
-	{
-		printf("Open file failure:%s\n",strerror(errno));
-		return -3;
-	}
-
-	memset(buf,0,sizeof(buf));
-	if(read(fd,buf,sizeof(buf))<0)
-	{
-		printf("Read data from fd[%d] failure:%s\n",fd,strerror(errno));
-		return -4;
-	}
-
-	ptr=strstr(buf,"t=");
-	if(!ptr)
-	{
-		printf("Cannot find t= string\n");
-		return -5;
-	}
-
-	ptr +=2;
-	*temp=atof(ptr)/1000;
-	close(fd);
 	return 0;
 }
 
-//获取产品序列号
+	void print_usage(char *progname)
+	{
+		printf("%s usage:\n",progname);
+		printf("-i(--ipaddr):specify server IP address.\n");
+		printf("-p(--port):specify server port.\n");
+		printf("-t(--time):Sampling interval.\n");
+		printf("-h(--help):print this help information.\n");
+		return;
+	}
+
+	int get_temperature(float *temp)
+	{
+		int					fd=-1;
+		char				buf[128];
+		char				*ptr=NULL;
+		DIR					*dirp=NULL;
+		struct dirent		*direntp=NULL;
+		char				w1_path[64]="/sys/bus/w1/devices/";
+		char				chip_sn[32];
+		int					found=0;
+
+		dirp=opendir(w1_path);
+		if(!dirp)
+		{
+			printf("Open folder %s failure:%s\n",w1_path,strerror(errno));
+			return -1;
+		}
+
+		while(NULL!=(direntp=readdir(dirp)))
+		{
+			if(strstr(direntp->d_name,"28-"))
+			{
+				strncpy(chip_sn,direntp->d_name,sizeof(chip_sn));
+				found=1;
+			}
+		}
+
+		closedir(dirp);
+
+		if(!found)
+		{
+			printf("Cannot find ds18b20 chipset\n");
+			return -2;
+		}
+
+		strncat(w1_path,chip_sn,sizeof(w1_path)-strlen(w1_path));
+		strncat(w1_path,"/w1_slave",sizeof(w1_path)-strlen(w1_path));
+
+		if((fd=open(w1_path,O_RDONLY))<0)
+		{
+			printf("Open file failure:%s\n",strerror(errno));
+			return -3;
+		}
+
+		memset(buf,0,sizeof(buf));
+		if(read(fd,buf,sizeof(buf))<0)
+		{
+			printf("Read data from fd[%d] failure:%s\n",fd,strerror(errno));
+			return -4;
+		}
+
+		ptr=strstr(buf,"t=");
+		if(!ptr)
+		{
+			printf("Cannot find t= string\n");
+			return -5;
+		}
+
+		ptr +=2;
+		*temp=atof(ptr)/1000;
+		close(fd);
+		return 0;
+	}
+
+	//获取产品序列号
 int get_dev(char *ID,int len)
-{
-	int sn=1;
-	snprintf(ID,len,"%05d",sn);
-	
-}
+	{
+		int sn=1;
+		snprintf(ID,len,"%05d",sn);
+		
+	}
 
-//获取当地时间
+	//获取当地时间
 int get_tm(char *localt)
-{
-	time_t	seconds;
-	struct tm *local;
+	{
+		time_t	seconds;
+		struct tm *local;
 
-	time(&seconds);
+		time(&seconds);
 
-	local = localtime(&seconds);
+		local = localtime(&seconds);
 
-	snprintf(localt,64,"%d-%d-%d %d:%d:%d\n",local->tm_year+1900,local->tm_mon+1,local->tm_mday,local->tm_hour,local->tm_min,local->tm_sec);
+		snprintf(localt,64,"%d-%d-%d %d:%d:%d\n",local->tm_year+1900,local->tm_mon+1,local->tm_mday,local->tm_hour,local->tm_min,local->tm_sec);
 
 	return 0;
 }
@@ -321,7 +327,6 @@ int sock_reconnect(char *servip,int port)
 		{	
 			printf("Reconnect to server failure:%s\n",strerror(errno));		
 			close(connfd);
-			sleep(3);
 			return -1;
 		}
 		else

@@ -29,6 +29,7 @@
 int socket_server_init(char *listenip,int listenport);
 void print_usage(char * progname);
 void set_socket_limit(void);
+int str_strtok(char* str,char *data_buf);
 
 int main(int argc,char **argv)
 {
@@ -41,6 +42,7 @@ int main(int argc,char **argv)
 	int						i,j;
 	int						found;
 	char					buf[1024];
+	char					str[128];
 	int						epollfd;
 	int						events;
 	struct epoll_event		event;
@@ -168,6 +170,20 @@ int main(int argc,char **argv)
 						epoll_ctl(epollfd,EPOLL_CTL_DEL,event_array[i].data.fd,NULL);
 						close(event_array[i].data.fd);
 					}
+					if((str_strtok(str,buf))<0)
+					{
+						printf("Failed to split character:%s\n",strerror(errno));
+					}
+
+					db=sqlite3_open_database(DB_NAME);
+					if((sqlite3_create_table(db,TABLE_NAME))==0)
+					{
+						printf("Create table successfully\n");
+						if((sqlite3_insert(db,TABLE_NAME,id,temp,local_t))==0)
+						{
+							printf("Insert data successfully\n");
+						}
+					}
 				}
 			}
 		}
@@ -246,4 +262,18 @@ CleanUp:
 	else
 		rv=listenfd;
 	return rv;
+}
+
+int str_strtok(char *data_buf)
+{
+	const char		s[2]=",";
+	char			*token;
+
+	token=strtok(str,s);
+	while(token!=NULL)
+	{
+		printf("%s\n",token);
+		token=strtok(NULL,s);
+	}
+	return 0;
 }
