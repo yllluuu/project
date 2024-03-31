@@ -13,6 +13,7 @@
 
 #include<stdio.h>
 #include<sqlite3.h>
+#include<string.h>
 
 sqlite3* sqlite3_open_database(char* db_name)
 {
@@ -71,8 +72,8 @@ int sqlite3_insert(sqlite3* db,char* table_name,char *id,float * temp,char *loca
 	int			ret=-1;
 	char		sql[128];
 	char		*err_msg=NULL;
-	sprintf(sql,"INSERT INTO %s(ID,Temperature,time1) VALUES('%s',%f,'%s')",table_name,ID,*temp,localtime);
-	rc=sqlite3_exe(db,sql,0,0,&err_msg);
+	sprintf(sql,"INSERT INTO %s(ID,Temperature,time1) VALUES('%s',%f,'%s')",table_name,id,*temp,localtime);
+	rc=sqlite3_exec(db,sql,0,0,&err_msg);
 	if(rc!=SQLITE_OK)
 	{
 		printf("Insert error:%s\n",err_msg);

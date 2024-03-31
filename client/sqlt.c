@@ -202,6 +202,6 @@ int sqlite3_select(sqlite3* db,char* table_name,char *data_buf)
 		sqlite3_free(err_msg);
 		return -1;
 	}	
-	snprintf(data_buf,128,"%s,%.2f,%s\n",results[3],atof(results[4]),results[5]);		    
+	snprintf(data_buf,128,"%s %.2f %s\n",results[3],atof(results[4]),results[5]);		    
 	return rows;
 }

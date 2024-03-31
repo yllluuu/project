@@ -24,12 +24,18 @@
 #include<sys/resource.h>
 #include<arpa/inet.h>
 #include<netinet/in.h>
+#include<sqlite3.h>
+#include"ser_sqlt.h"
 
 #define MAX_EVENTS 			512
+#define DB_NAME				"ser_dtbase.db"
+#define TABLE_NAME			"ser_user"
+
 int socket_server_init(char *listenip,int listenport);
 void print_usage(char * progname);
 void set_socket_limit(void);
-int str_strtok(char* str,char *data_buf);
+//int str_strtok(char* str,char *data_buf);
+int str_sscanf(char* data_buf,char* id,float* temp,char* local_t);
 
 int main(int argc,char **argv)
 {
@@ -43,8 +49,12 @@ int main(int argc,char **argv)
 	int						found;
 	char					buf[1024];
 	char					str[128];
+	char					id[16];
+	float					temp;
+	char					local_t[128];
 	int						epollfd;
 	int						events;
+	sqlite3					*db;
 	struct epoll_event		event;
 	struct epoll_event		event_array[MAX_EVENTS];
 
@@ -170,16 +180,20 @@ int main(int argc,char **argv)
 						epoll_ctl(epollfd,EPOLL_CTL_DEL,event_array[i].data.fd,NULL);
 						close(event_array[i].data.fd);
 					}
-					if((str_strtok(str,buf))<0)
+					if((str_sscanf(buf,id,&temp,local_t))<0)
 					{
 						printf("Failed to split character:%s\n",strerror(errno));
-					}
-
+				    }
+					/*  
+					strcpy(id,&str[0]);
+					temp=atof(&str[1]);
+					strcpy(local_t,&str[2]);*/
+					str_sscanf(buf,id,&temp,local_t);
 					db=sqlite3_open_database(DB_NAME);
 					if((sqlite3_create_table(db,TABLE_NAME))==0)
 					{
 						printf("Create table successfully\n");
-						if((sqlite3_insert(db,TABLE_NAME,id,temp,local_t))==0)
+						if((sqlite3_insert(db,TABLE_NAME,id,&temp,local_t))==0)
 						{
 							printf("Insert data successfully\n");
 						}
@@ -263,17 +277,28 @@ CleanUp:
 		rv=listenfd;
 	return rv;
 }
-
-int str_strtok(char *data_buf)
+/*  
+int str_strtok(char *str,char *data_buf)
 {
 	const char		s[2]=",";
 	char			*token;
+	int				i=0;
 
-	token=strtok(str,s);
+	token=strtok(data_buf,s);
 	while(token!=NULL)
 	{
-		printf("%s\n",token);
+		str[i]=*token;
 		token=strtok(NULL,s);
+		i++;
 	}
-	return 0;
+	return i;
+}*/
+
+int str_sscanf(char* data_buf,char* id,float* temp,char* local_t)
+{
+	int 	n=-1;
+	float	temperature;
+	n=sscanf(data_buf,"%s %f %s",id,&temperature,local_t);
+	*temp=temperature;	
+	return n;
 }
