@@ -88,7 +88,7 @@ int main(int argc,char ** argv)
 		print_usage(argv[0]);
 		return 0;
 	}
-
+/*  
 	connfd=socket(AF_INET,SOCK_STREAM,0);
 	if(connfd<0)
 	{
@@ -106,7 +106,8 @@ int main(int argc,char ** argv)
 		printf("connect to server[%s] [%d] failure:%s\n",servip,port,strerror(errno));
 		return -1;
 	}
-	printf("connect to server[%s] [%d] successfully!\n",servip,port);
+	printf("connect to server[%s] [%d] successfully!\n",servip,port);*/
+	connfd=sock_reconnect(servip,port);
 
 	while(1)
 	{
@@ -132,7 +133,7 @@ int main(int argc,char ** argv)
 			}
 			sqlite3_close_database(db);
 			//重新连接
-			if(sock_reconnect(servip,port)<0)/* 未连上 */	
+			if((connfd=sock_reconnect(servip,port))<0)/* 未连上 */	
 			{
 				printf("Reconnect failure:%s\n",strerror(errno));
 			}
@@ -146,7 +147,7 @@ int main(int argc,char ** argv)
 					rows=sqlite3_select(db,TABLE_NAME,data_buf);
 					if((write(connfd,data_buf,strlen(data_buf)))<0)
 					{
-						printf("Write data to server failure:%s\n",strerror(errno));
+						printf("Write data2 to server failure:%s\n",strerror(errno));
 						goto CleanUp;
 					} 
 					sqlite3_delete(db,TABLE_NAME);
@@ -160,12 +161,12 @@ int main(int argc,char ** argv)
 		{
 			if(write(connfd,buf,strlen(buf))<0)
 			{
-				printf("Write data to server failure:%s\n",strerror(errno));
+				printf("Write data1 to server failure:%s\n",strerror(errno));
 				goto CleanUp;
 			}	
 
 
-			memset(buf,0,sizeof(buf));
+/*  			memset(buf,0,sizeof(buf));
 			rv=read(connfd,buf,sizeof(buf));
 			if(rv<0)
 			{
@@ -178,7 +179,7 @@ int main(int argc,char ** argv)
 				printf("Client connect to server get disconnected\n");
 				goto CleanUp;
 			}
-
+*/
 			//	printf("%s\n",buf);
 		}
 		sleep(time);

@@ -188,7 +188,7 @@ int main(int argc,char **argv)
 					strcpy(id,&str[0]);
 					temp=atof(&str[1]);
 					strcpy(local_t,&str[2]);*/
-					str_sscanf(buf,id,&temp,local_t);
+//					str_sscanf(buf,id,&temp,local_t);
 					db=sqlite3_open_database(DB_NAME);
 					if((sqlite3_create_table(db,TABLE_NAME))==0)
 					{
