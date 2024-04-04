@@ -41,8 +41,8 @@
 #define dbg_print(format,args...)	do{} while(0)
 #endif
 
-#define DB_NAME		"ser_dtbase.db"
-#define TABLE_NAME	"ser_user"
+#define DB_NAME		"cli_dtbase.db"
+#define TABLE_NAME	"cli_user"
 
 #endif
 
