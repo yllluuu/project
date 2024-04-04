@@ -13,6 +13,7 @@
 #include<stdio.h>
 #include<string.h>
 #include<time.h>
+#include"get_func.h"
 
 void print_usage(char* programe)
 {
@@ -39,6 +40,6 @@ int get_tm(char* localt)
 
 	local=localtime(&seconds);
 
-	snprintf(local,64,"%d/%d/%d-%d:%d:%d\n",local->tm_year+1900,local->tm_mon+1,local->tm_mday,local->tm_hour,local->tm_min,local->tm_sec);
+	snprintf(localt,64,"%d/%d/%d-%d:%d:%d\n",local->tm_year+1900,local->tm_mon+1,local->tm_mday,local->tm_hour,local->tm_min,local->tm_sec);
 	return 0;
 }

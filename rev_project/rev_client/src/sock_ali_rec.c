@@ -15,13 +15,17 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 #include <unistd.h>
+#include <netinet/tcp.h>
+#include"sock_ali_rec.h"
 
 int socket_alive(int fd)
 {
 	struct tcp_info		info;
 	int					len=sizeof(info);
-	getsockopt(fd,IPPROTO_TCP,TCP_INFO,&info,(socket_t *)&len);
+	getsockopt(fd,IPPROTO_TCP,TCP_INFO,&info,(socklen_t *)&len);
 	if((info.tcpi_state==TCP_ESTABLISHED))
 	{
 		return 0;

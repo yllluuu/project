@@ -10,12 +10,13 @@
  *      ChangeLog:  1, Release initial version on "20/03/24 20:17:15"
  *                 
  ********************************************************************************/
-//#include<stdio.h>
-//#include<sqlite3.h>
-//#include<string.h>
+#include<stdio.h>
+#include<sqlite3.h>
+#include<string.h>
 #include<errno.h>
 #include<stdlib.h>
 #include<unistd.h>
+#include"cli_sqlt.h"
 
 //创建打开表
 sqlite3* sqlite3_open_database(char * db_name)

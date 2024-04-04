@@ -19,6 +19,7 @@
 #define dbg_print(format,args...)	printf(format,##args)
 #else
 #define dbg_print(format,args...)	do{} while(0)
+#endif
 
 sqlite3* sqlite3_open_database(char* db_name);
 void sqlite3_close_database(sqlite3* db);

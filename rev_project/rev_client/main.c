@@ -115,7 +115,7 @@ int main(int argc,char **argv)
 						goto CleanUp;
 					}
 					sqlite3_delete(db,TABLE_NAME);/* 删除表中的数据 */
-				}while(rows>1)
+				}while(rows>1);
 
 				sqlite3_close_database(db);/* 关闭数据库 */
 			}

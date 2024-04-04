@@ -12,6 +12,7 @@
  ********************************************************************************/
 
 #include <stdio.h>
+#include "par_data.h"
 
 int str_sscanf(char* data_buf,char* id,float* temp,char* local_t)
 {

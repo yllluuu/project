@@ -17,7 +17,7 @@ int main(int argc,char **argv)
 	//socket
 	int						listenfd,connfd;
 	int						serv_port=0;
-	int						deamon_run=0;
+	int						daemon_run=0;
 	char					*progname=NULL;
 	int						opt;
 	int						rv;
@@ -50,7 +50,7 @@ int main(int argc,char **argv)
 		switch(opt)
 		{
 			case 'b':
-				deamon_run=1;
+				daemon_run=1;
 				break;
 			case 'p':
 				serv_port=atoi(optarg);
@@ -77,9 +77,9 @@ int main(int argc,char **argv)
 	}
 	dbg_print("%server start listen on %d port\n",argv[0],serv_port);
 
-	if(deamon_run)
+	if(daemon_run)
 	{
-		deamon(0,0);
+		daemon(0,0);
 	}
 
 	if((epollfd=epoll_create(MAX_EVENTS))<0)
@@ -157,7 +157,7 @@ int main(int argc,char **argv)
 					}
 					if((str_sscanf(buf,id,&temp,local_t))<0)/* 分割字符串 */
 					{
-						dbg_print("Failed to split character:%s\n",sterror(errno));
+						dbg_print("Failed to split character:%s\n",strerror(errno));
 					}
 					db=sqlite3_open_database(DB_NAME);/* 打开数据库 */
 					if(sqlite3_create_table(db,TABLE_NAME)==0)/* 创建表 */

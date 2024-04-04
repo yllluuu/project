@@ -10,6 +10,15 @@
  *      ChangeLog:  1, Release initial version on "31/03/24 16:12:55"
  *                 
  ********************************************************************************/
+#include<stdio.h>
+#include<string.h>
+#include<errno.h>
+#include<sys/types.h>
+#include<dirent.h>
+#include<fcntl.h>
+#include<unistd.h>
+#include<stdlib.h>
+#include"ds18b20_get_temp.h"
 
 int get_temperature(float *temp)
 {
